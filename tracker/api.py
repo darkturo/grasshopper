@@ -1,6 +1,7 @@
 from flask import Blueprint, current_app, jsonify, request
 from flask_jwt_extended import create_access_token, get_jwt_identity, jwt_required, JWTManager
 from tracker.model import User, TestRun, calculate_total_time_overpassing_threshold
+
 bp = Blueprint('api-v1', __name__, url_prefix='/v1/api')
 jwt = JWTManager(current_app)
 
@@ -28,10 +29,11 @@ def testrun():
 
     user = User.find_by_username(current_user)
     test_run = TestRun.create(user.id,
-                   request.json.get("name"),
-                   request.json.get("description"),
-                   request.json.get("threshold"))
+                              request.json.get("name"),
+                              request.json.get("description"),
+                              request.json.get("threshold"))
     return jsonify(id=test_run.id, start_time=test_run.start_time), 201
+
 
 @bp.route("/testrun/<testrun_id>/usage", methods=["POST"])
 @jwt_required()
@@ -70,6 +72,7 @@ def testrun_stop(testrun_id):
 
     test_run.finish()
     return jsonify({"msg": "Testrun finished"}), 200
+
 
 @bp.route("/testrun/<testrun_id>", methods=["GET"])
 @jwt_required()
