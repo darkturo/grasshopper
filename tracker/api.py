@@ -55,5 +55,19 @@ def testrun_record_usage(testrun_id):
     return jsonify({"msg": "Usage recorded"}, 201)
 
 
-if __name__ == "__main__":
-    app.run()
+@app.route("/testrun/<testrun_id>/stop", methods=["POST"])
+@jwt_required()
+def testrun_stop(testrun_id):
+    current_user = get_jwt_identity()
+
+    user = User.find_by_username(current_user)
+    test_run = TestRun.find_by_id(testrun_id)
+    if not test_run:
+        return jsonify({"msg": "No testrun found"}), 404
+
+    if test_run.user_id != user.id:
+        return jsonify({"msg": "Forbidden"}), 403
+
+    test_run.finish()
+    return jsonify({"msg": "Testrun finished"}), 200
+
