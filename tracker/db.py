@@ -21,3 +21,24 @@ def close_db(e=None):
 
     if db is not None:
         db.close()
+
+def init_db():
+    db = get_db()
+
+    with current_app.open_resource('schemas/tracker.sql') as f:
+        db.executescript(f.read().decode('utf8'))
+
+@click.command('init-db')
+def init_db_command():
+    # Register command to start a brand-new database
+    init_db()
+    click.echo('Initialized the database.')
+
+
+sqlite3.register_converter(
+    "timestamp", lambda v: datetime.fromisoformat(v.decode())
+)
+
+def init_app(app):
+    app.teardown_appcontext(close_db)
+    app.cli.add_command(init_db_command)

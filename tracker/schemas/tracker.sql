@@ -1,6 +1,7 @@
--- So we want to store on the one hand users, which will have a JWT token after login in.
--- We want to store the user's email, password.
--- On the other hand we have test runs, which are associated to a user. There will be as many test runs as the user wants.
+DROP TABLE IF EXISTS users;
+DROP TABLE IF EXISTS test_run;
+DROP TABLE IF EXISTS cpu_usage;
+
 CREATE TABLE users (
     id UUID PRIMARY KEY,
     email VARCHAR(255) NOT NULL,
