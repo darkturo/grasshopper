@@ -64,7 +64,7 @@ class TestRun:
         )
         db.commit()
 
-    def add_cpu_usage(self, cpu_usage):
+    def record_cpu_usage(self, cpu_usage):
         db = get_db()
         db.execute(
             "INSERT INTO cpu_usage (testrun_id, cpu_usage) VALUES (?, ?)",

@@ -18,7 +18,7 @@ def auth():
         return jsonify({"msg": "Bad username or password"}), 401
 
     access_token = create_access_token(identity=username)
-    return jsonify(token=access_token)
+    return jsonify(token=access_token), 200
 
 
 @app.route("/testrun", methods=["POST"])
@@ -31,7 +31,28 @@ def testrun():
                    request.json.get("name"),
                    request.json.get("description"),
                    request.json.get("threshold"))
-    return jsonify(id=test_run.id, start_time=test_run.start_time)
+    return jsonify(id=test_run.id, start_time=test_run.start_time), 201
+
+@app.route("/testrun/<testrun_id>/usage", methods=["POST"])
+@jwt_required()
+def testrun_record_usage(testrun_id):
+    current_user = get_jwt_identity()
+
+    user = User.find_by_username(current_user)
+    test_run = TestRun.find_by_id(testrun_id)
+    if not test_run:
+        return jsonify({"msg": "No testrun found"}), 404
+
+    if test_run.user_id != user.id:
+        return jsonify({"msg": "Forbidden"}), 403
+
+    try:
+        usage = float(request.json.get("usage"))
+    except ValueError:
+        return jsonify({"msg": "Invalid usage value"}), 400
+
+    test_run.record_cpu_usage(usage)
+    return jsonify({"msg": "Usage recorded"}, 201)
 
 
 if __name__ == "__main__":
