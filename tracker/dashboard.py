@@ -8,7 +8,7 @@ from tracker.model.db import get_db
 bp = Blueprint('dashboard', __name__)
 
 @login_required
-@bp.route('/')
+@bp.route('/dashboard')
 def index():
     #db = get_db()
-    return render_template('dashboard/index.html', test_runs=[])
+    return render_template('dashboard/main.html', test_runs=[])

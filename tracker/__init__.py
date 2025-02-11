@@ -7,6 +7,7 @@ def create_app(test_config=None):
     app.config.from_mapping(
         SECRET_KEY='dev',
         DATABASE=os.path.join(app.instance_path, 'tracker.sqlite'),
+        JWT_SECRET_KEY='super-secret',
     )
 
     if test_config is None:
