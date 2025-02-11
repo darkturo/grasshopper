@@ -1,6 +1,8 @@
 import os
 
 from flask import Flask
+from flask_jwt_extended import JWTManager
+
 
 def create_app(test_config=None):
     app = Flask(__name__, instance_relative_config=True)
@@ -8,6 +10,7 @@ def create_app(test_config=None):
         SECRET_KEY='dev',
         DATABASE=os.path.join(app.instance_path, 'tracker.sqlite'),
         JWT_SECRET_KEY='super-secret',
+        JWT_TOKEN_LOCATION='headers'
     )
 
     if test_config is None:
@@ -23,6 +26,8 @@ def create_app(test_config=None):
     # Register the database
     from .model import db
     db.init_app(app)
+
+    jwt = JWTManager(app)
 
     # Register blueprints
     from . import auth, dashboard, index, api

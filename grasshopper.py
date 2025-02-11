@@ -14,6 +14,9 @@ class TrackerClient:
         self.tracker_url = f"{server_url}"
         self.test_run_id = None
 
+        if not self.jwt:
+            raise Exception('No JWT token provided')
+
         try:
             requests.head(f'{self.tracker_url}/v1/api/auth', timeout=1)
         except requests.exceptions.ConnectionError:
