@@ -1,0 +1,40 @@
+{% extends 'base.html' %}
+
+{% block header %}
+  <h1>{% block title %}Test Runs{% endblock %}</h1>
+{% endblock %}
+
+{% block content %}
+  {% for test_run in test_runs %}
+    <article class="post">
+      <header>
+        <div>
+          <h1>{{ test_run['name'] }}</h1>
+        </div>
+      </header>
+      <p class="body">
+        <table>
+            <tr>
+                <td>Test run ID</td>
+                <td>{{ test_run['id'] }}</td>
+            </tr>
+            <tr>
+                <td>Description</td>
+                <td>{{ test_run['description'] }}</td>
+            </tr>
+            <tr>
+                <td>Test run start time</td>
+                <td>{{ test_run['start_time'].strftime('%Y-%m-%d') }}</td>
+            </tr>
+            <tr>
+                <td>Test run end time</td>
+                <td>{{ test_run['end_time'].strftime('%Y-%m-%d') }}</td>
+            </tr>
+        </table>
+      </p>
+    </article>
+    {% if not loop.last %}
+      <hr>
+    {% endif %}
+  {% endfor %}
+{% endblock %}

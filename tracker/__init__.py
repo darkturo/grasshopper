@@ -23,12 +23,10 @@ def create_app(test_config=None):
     from . import db
     db.init_app(app)
 
-    # Register authentication blueprint
-    from . import auth
+    # Register blueprints
+    from . import auth, dashboard
     app.register_blueprint(auth.bp)
+    app.register_blueprint(dashboard.bp)
 
-    @app.route('/hello')
-    def hello():
-        return 'Hello, World!'
-
+    app.add_url_rule('/', endpoint='dashboard.index')
     return app
