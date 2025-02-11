@@ -117,6 +117,23 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
 
+    if args.no_command and args.command:
+        print("The --no-command flag cannot be used with a command")
+        exit(1)
+    elif not args.no_command and not args.command:
+        print("Specify a command to run or use the --no-command flag to just listen for the CPU usage.")
+        exit(1)
+
+    if args.name is None:
+        if not args.no_command and args.command:
+            args.name = args.command[0]
+            if not args.description:
+                args.description = " ".join(args.command[1:])
+        else:
+            args.name = "Unnamed testrun"
+            if args.description is None:
+                args.description = "No description"
+
     try:
         tracker_client = TrackerClient(args.jwt, args.server)
         runner = Runner(tracker_client, args.command)
