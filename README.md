@@ -22,11 +22,11 @@ Request:
     "name": "my test run ",
     "description": "running on a sunny day",
     "threshold": 0.5,
-    "start_time": "2021-01-01T00:00:00",
 }
 Response:
 {
     "id": 1,
+    "start_time": "2021-01-01T00:00:00"
 }
 
 POST /api/v1/test/:id/usage
