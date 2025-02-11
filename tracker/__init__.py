@@ -20,7 +20,7 @@ def create_app(test_config=None):
         pass
 
     # Register the database
-    from . import db
+    from .model import db
     db.init_app(app)
 
     # Register blueprints

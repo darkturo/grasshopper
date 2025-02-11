@@ -3,7 +3,7 @@ from flask import (
 )
 
 from tracker.auth import login_required
-from tracker.db import get_db
+from tracker.model.db import get_db
 
 bp = Blueprint('dashboard', __name__)
 
