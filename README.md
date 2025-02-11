@@ -55,6 +55,6 @@ Response:
     "active": false,
     "start_time": "2021-01-01T00:00:00",
     "end_time": "2021-01-01T00:00:00",
-    "total_time": 0,
+    "duration": 0, // seconds
 }
 

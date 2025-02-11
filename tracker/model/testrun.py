@@ -91,13 +91,19 @@ class TestRun:
                                               timestamp=entry['time'],
                                               testrun_id=self.id))
 
-def calculate_total_time_overpassing_threshold(threshold, usage_time_series):
-    total_time = 0
-    for periods in zip(usage_time_series, usage_time_series[1:]):
-        period_duration = (periods[1].timestamp - periods[0].timestamp).total_seconds()
-        if periods[0].usage > threshold:
-            total_time += period_duration
-    return total_time
+    def get_test_execution_stats(self):
+        time_series = self.fetch_current_cpu_usage()
+        total_time = 0
+
+        for periods in zip(time_series, time_series[1:]):
+            period_duration = (periods[1].timestamp - periods[0].timestamp).total_seconds()
+            if periods[0].usage > self.threshold:
+                total_time += period_duration
+        return {
+            'measurements': len(time_series),
+            'time_above_threshold': total_time,
+            'total_time': self.duration,
+        }
 
 
 @dataclass
