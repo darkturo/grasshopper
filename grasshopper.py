@@ -89,7 +89,6 @@ class Runner:
         print("Terminating task")
 
 
-
 async def grasshopper(tracker_client, runner, name, description, threshold):
     testrun = tracker_client.create_testrun(name, description, threshold)
     print(f"Testrun starts with id: {testrun.id} at {testrun.start_time}")
@@ -123,6 +122,8 @@ if __name__ == '__main__':
     elif not args.no_command and not args.command:
         print("Specify a command to run or use the --no-command flag to just listen for the CPU usage.")
         exit(1)
+    if args.no_command:
+        args.command = 'read -p waiting...'
 
     if args.name is None:
         if not args.no_command and args.command:
