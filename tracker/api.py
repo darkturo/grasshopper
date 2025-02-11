@@ -1,9 +1,9 @@
 from flask import Blueprint, current_app, jsonify, request
 from flask_jwt_extended import create_access_token, get_jwt_identity, jwt_required, JWTManager
-from tracker.model import User, TestRun, calculate_total_time_overpassing_threshold
+from tracker.model.user import User
+from tracker.model.testrun import TestRun
 
-bp = Blueprint('api-v1', __name__, url_prefix='/v1/api')
-jwt = JWTManager(current_app)
+bp = Blueprint('v1', __name__, url_prefix='/v1/api')
 
 
 @bp.route("/auth", methods=["POST"])

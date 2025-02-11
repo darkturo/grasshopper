@@ -25,10 +25,11 @@ def create_app(test_config=None):
     db.init_app(app)
 
     # Register blueprints
-    from . import auth, dashboard, index
+    from . import auth, dashboard, index, api
     app.register_blueprint(auth.bp)
     app.register_blueprint(dashboard.bp)
     app.register_blueprint(index.bp)
+    app.register_blueprint(api.bp)
 
     #app.add_url_rule('/', endpoint='index')
     return app
