@@ -14,6 +14,11 @@ class TrackerClient:
         self.tracker_url = f"{server_url}"
         self.test_run_id = None
 
+        try:
+            requests.head(f'{self.tracker_url}/v1/api/auth', timeout=1)
+        except requests.exceptions.ConnectionError:
+            raise Exception(f'Cannot reach the tracker service at {self.tracker_url}')
+
     def create_testrun(self, name, description, threshold):
         r = requests.post(f'{self.tracker_url}/v1/api/testrun', json={
             'name': name,
@@ -46,52 +51,58 @@ class TrackerClient:
         return r.json()
 
 
-
-
-# Create test run, record usage, stop test run, get test run
-
 class Runner:
     def __init__(self, tracker_client, command=None, poll_interval=0.5):
         self.tracker_client = tracker_client
         self.command = command
         self.poll_interval = poll_interval
         self.task = None
+        self.testrun_id = None
 
     def terminate_runner(self, signum, frame):
         if self.task:
             self.task.cancel()
 
     async def report_cpu_usage(self):
-        while (True):
-            usage = psutil.cpu_percent()
-            print(f"CPU usage: {usage}")
-            await asyncio.sleep(self.poll_interval)
+        if self.testrun_id:
+            while (True):
+                usage = psutil.cpu_percent()
+                print(f"CPU usage: {usage}")
+                await asyncio.sleep(self.poll_interval)
+        else:
+            print("No testrun id set, can't report usage")
 
-    def print_stats(self, future):
-        stats = self.tracker_client.get_testrun_stats()
-        print(stats)
-
-    async def run(self):
+    async def run(self, testrun_id):
+        self.testrun_id = testrun_id
         try:
             signal(SIGINT, self.terminate_runner)
             signal(SIGTERM, self.terminate_runner)
-            self.task = asyncio.create_task(self.report_cpu_usage())
-            self.task.add_done_callback(self.print_stats)
+            self.task = asyncio.create_task(self.report_cpu_usage)
+            self.task.add_done_callback(self.exit_runner)
             await asyncio.wait([self.task])
         except asyncio.CancelledError:
             print("User close tasks")
         except Exception as e:
             print(f"An error occurred: {e}")
 
+    def exit_runner(self, future):
+        print("Terminating task")
+
+
 
 async def grasshopper(tracker_client, runner, name, description, threshold):
-#    testrun = tracker_client.create_testrun(name, description, threshold)
-    await runner.run()
-#    testrun.finish()
-#    if testrun.has_passed_threshold():
-#        print("Testrun has passed the threshold")
-#    stats = testrun.get_stats()
-#    print(stats)
+    testrun = tracker_client.create_testrun(name, description, threshold)
+    print(f"Testrun starts with id: {testrun.id} at {testrun.start_time}")
+
+    await runner.run(testrun.id)
+
+    testrun.finish()
+
+    if testrun.has_passed_threshold():
+        print("Testrun has passed the threshold")
+
+    stats = testrun.get_stats()
+    print(stats)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Grasshopper tracks the time of your tests')
@@ -106,12 +117,13 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
 
-    tracker_client = TrackerClient(args.jwt, args.server)
-    if args.no_command:
-        runner = Runner(tracker_client)
-    else:
+    try:
+        tracker_client = TrackerClient(args.jwt, args.server)
         runner = Runner(tracker_client, args.command)
 
-    asyncio.get_event_loop().run_until_complete(
-        grasshopper(tracker_client, runner, args.name, args.description, args.threshold)
-    )
+        asyncio.get_event_loop().run_until_complete(
+            grasshopper(tracker_client, runner, args.name, args.description, args.threshold)
+        )
+    except Exception as e:
+        print(f"An error occurred: {e}")
+        exit(1)
