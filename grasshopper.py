@@ -27,7 +27,7 @@ class TrackerClient:
         }, headers={'Authorization': f'Bearer {self.jwt}'})
 
         if r.status_code != 201:
-            raise Exception(f'Error creating testrun: {response.text}')
+            raise Exception(f'Error creating testrun: {r.text}')
 
         self.test_run_id = r.json()['id']
 
@@ -56,12 +56,13 @@ class Runner:
         self.tracker_client = tracker_client
         self.command = command
         self.poll_interval = poll_interval
-        self.task = None
+        self.runner = None
+        self.reporter = None
         self.testrun_id = None
 
     def terminate_runner(self, signum, frame):
-        if self.task:
-            self.task.cancel()
+        if self.reporter:
+            self.reporter.cancel()
 
     async def report_cpu_usage(self):
         if self.testrun_id:
@@ -75,19 +76,27 @@ class Runner:
     async def run(self, testrun_id):
         self.testrun_id = testrun_id
         try:
-            signal(SIGINT, self.terminate_runner)
-            signal(SIGTERM, self.terminate_runner)
-            self.task = asyncio.create_task(self.report_cpu_usage)
-            self.task.add_done_callback(self.exit_runner)
-            await asyncio.wait([self.task])
+            self.reporter = asyncio.create_task(self.report_cpu_usage)
+            self.reporter.add_done_callback(self.exit_reporter)
+            self.runner = asyncio.to_thread(self.run_command)
+            self.runner.add_done_callback(self.exit_runner)
+            await asyncio.wait([self.runner, self.reporter])
         except asyncio.CancelledError:
             print("User close tasks")
         except Exception as e:
             print(f"An error occurred: {e}")
 
     def exit_runner(self, future):
-        print("Terminating task")
+        print("Runner has finished: ", future.result(1))
 
+    def exit_reporter(self, future):
+        print("Reporter has finished: ", future.result(1))
+
+    def run_command(self):
+        signal(SIGINT, self.terminate_runner)
+        signal(SIGTERM, self.terminate_runner)
+        if self.command:
+            os.system(" ".join(self.command))
 
 async def grasshopper(tracker_client, runner, name, description, threshold):
     testrun = tracker_client.create_testrun(name, description, threshold)
