@@ -1,15 +1,14 @@
 from dataclasses import dataclass
 from datetime import datetime
-from flask import Flask
+from sqlite3 import IntegrityError
 from uuid import uuid4
-from werkzeug.security import check_password_hash, generate_password_hash
 
 from .db import get_db
-from sqlite3 import IntegrityError
 
 
 class TestRunAlreadyExistsError(Exception):
     pass
+
 
 @dataclass
 class TestRun:
@@ -21,19 +20,29 @@ class TestRun:
     start_time: str = None
     end_time: str = None
 
-
     @staticmethod
     def create(user_id, name, description, threshold):
-        """ Create a new testrun, will raise an error if the testrun already exists """
+        """
+        Create a new testrun.
+        Raise an error if the testrun already exists
+        """
         try:
             db = get_db()
             id = uuid4().bytes
             db.execute(
-                "INSERT INTO test_run (id, user_id, name, description, threshold) VALUES (?, ?, ?, ?, ?)",
+                '''
+                INSERT INTO
+                    test_run (id, user_id, name, description, threshold)
+                VALUES (?, ?, ?, ?, ?)
+                ''',
                 (id, user_id, name, description, threshold),
             )
             db.commit()
-            res = db.execute("SELECT id, start_time FROM test_run WHERE id = ?", (id,)).fetchone()
+            res = db.execute('''
+                SELECT id, start_time FROM
+                    test_run
+                WHERE id = ?
+                ''', (id)).fetchone()
         except IntegrityError as e:
             raise TestRunAlreadyExistsError(e)
         return {'id': res['id'], 'start_time': res['start_time']}
@@ -72,7 +81,11 @@ class TestRun:
     def record_cpu_usage(self, cpu_usage):
         db = get_db()
         db.execute(
-            "INSERT INTO cpu_usage (id, testrun_id, cpu_usage) VALUES (?, ?, ?)",
+            '''
+            INSERT INTO
+                cpu_usage (id, testrun_id, cpu_usage)
+            VALUES (?, ?, ?)
+            ''',
             (uuid4().bytes, self.id, cpu_usage),
         )
         db.commit()
@@ -80,18 +93,24 @@ class TestRun:
     def has_passed_threshold(self):
         db = get_db()
         cpu_usage = db.execute(
-            "SELECT MAX(usage) as max_usage FROM cpu_usage WHERE testrun_id = ? GROUP BY test_run_id",
-            (self.id)
-        ).fetchone()['max_usage']
+            '''
+            SELECT MAX(usage) as max_usage FROM
+                cpu_usage
+            WHERE testrun_id = ?
+            GROUP BY test_run_id
+            ''', (self.id)).fetchone()['max_usage']
         return cpu_usage > self.threshold
 
     def fetch_current_cpu_usage(self):
         db = get_db()
         usage_time_series = []
         for entry in db.execute(
-            "SELECT cpu_usage, time FROM cpu_usage WHERE testrun_id = ? ORDER BY time DESC LIMIT 1",
-            (self.id)
-        ).fetchall():
+                '''
+                SELECT cpu_usage, time FROM
+                    cpu_usage
+                WHERE testrun_id = ?
+                ORDER BY time DESC LIMIT 1
+                ''', (self.id)).fetchall():
             usage_time_series.append(CPUUsage(usage=entry['cpu_usage'],
                                               timestamp=entry['time'],
                                               testrun_id=self.id))
@@ -101,7 +120,8 @@ class TestRun:
         total_time = 0
 
         for periods in zip(time_series, time_series[1:]):
-            period_duration = (periods[1].timestamp - periods[0].timestamp).total_seconds()
+            period_duration = (periods[1].timestamp -
+                               periods[0].timestamp).total_seconds()
             if periods[0].usage > self.threshold:
                 total_time += period_duration
         return {

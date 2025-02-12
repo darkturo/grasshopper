@@ -4,7 +4,7 @@ from flask import (
     Blueprint, flash, g, redirect, render_template, request, session, url_for
 )
 from flask_jwt_extended import create_access_token
-from flask import current_app, g
+
 
 from tracker.model.user import User, UserAlreadyExistsError
 
@@ -106,4 +106,3 @@ def jwt():
     jwt_token = create_access_token(identity=user.username)
     g.jwt_token = jwt_token
     return render_template('auth/jwt.html')
-

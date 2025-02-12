@@ -1,9 +1,7 @@
-from flask import (
-    Blueprint, flash, g, redirect, render_template, request, url_for
-)
-from flask import current_app, g
+from flask import Blueprint, render_template
 
 bp = Blueprint('index', __name__)
+
 
 @bp.route('/')
 def index():

@@ -2,7 +2,6 @@ import os
 
 from flask import Flask
 from flask_jwt_extended import JWTManager
-from flask import current_app, g
 
 
 def create_app(test_config=None):
@@ -40,5 +39,5 @@ def create_app(test_config=None):
 
     app.before_request(auth.load_logged_in_user)
 
-    #app.add_url_rule('/', endpoint='index')
+    # app.add_url_rule('/', endpoint='index')
     return app

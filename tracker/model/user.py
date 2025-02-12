@@ -1,5 +1,4 @@
 from dataclasses import dataclass
-from flask import current_app, g
 from werkzeug.security import check_password_hash, generate_password_hash
 from uuid import uuid4
 from sqlite3 import IntegrityError
@@ -28,7 +27,10 @@ class User:
         ).fetchone()
         if user is None:
             return None
-        return User(id=user['id'], username=user['username'], password=user['password'], email=user['email'])
+        return User(id=user['id'],
+                    username=user['username'],
+                    password=user['password'],
+                    email=user['email'])
 
     @staticmethod
     def find_by_username(username):
@@ -40,18 +42,29 @@ class User:
         ).fetchone()
         if user is None:
             return None
-        return User(id=user['id'], username=user['username'], password=user['password'], email=user['email'])
+        return User(id=user['id'],
+                    username=user['username'],
+                    password=user['password'],
+                    email=user['email'])
 
     @staticmethod
     def create(username, email, password):
-        """ Create a new user, will raise an error if the user already exists """
+        """
+        Create a new user.
+        Raise an error if the user already exists.
+        """
         db = get_db()
 
         try:
-            db.execute(
-                "INSERT INTO user (id, username, email, password) VALUES (?, ?, ?, ?)",
-                (uuid4().bytes, username, email, generate_password_hash(password)),
-            )
+            db.execute('''
+                INSERT INTO
+                    user (id, username, email, password)
+                VALUES (?, ?, ?, ?)
+                ''',
+                       (uuid4().bytes,
+                        username,
+                        email,
+                        generate_password_hash(password)))
             db.commit()
         except IntegrityError as e:
             raise UserAlreadyExistsError(e)
