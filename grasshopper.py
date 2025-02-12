@@ -1,7 +1,9 @@
 #!/usr/bin/python3
 import argparse
 import asyncio
+import json
 import os
+from collections import namedtuple
 import psutil
 import requests
 from signal import sigwait, SIGINT, SIGTERM, signal
@@ -32,7 +34,9 @@ class TrackerClient:
         if r.status_code != 201:
             raise Exception(f'Error creating testrun: {r.text}')
 
-        self.test_run_id = r.json()['id']
+        self.test_run_id = r.json().get('id')
+        return namedtuple('TestRun', ['id', 'start_time'])(self.test_run_id, r.json().get('start_time'))
+
 
     def record_usage(self, usage):
         r = requests.post(f'{self.tracker_url}/v1/api/testrun/{self.test_run_id}/usage', json={
@@ -51,6 +55,7 @@ class TrackerClient:
         r = requests.get(f'{self.tracker_url}/v1/api/testrun/{self.test_run_id}', headers={'Authorization': f'Bearer {self.jwt}'})
         if r.status_code != 200:
             warnings.warn(f'Could not get testrun stats: {r.text}')
+        print(f"GOT STATS: {r.text}")
         return r.json()
 
 
@@ -103,16 +108,14 @@ class Runner:
 
 async def grasshopper(tracker_client, runner, name, description, threshold):
     testrun = tracker_client.create_testrun(name, description, threshold)
+
     print(f"Testrun starts with id: {testrun.id} at {testrun.start_time}")
 
     await runner.run(testrun.id)
 
-    testrun.finish()
+    tracker_client.stop_testrun()
 
-    if testrun.has_passed_threshold():
-        print("Testrun has passed the threshold")
-
-    stats = testrun.get_stats()
+    stats = tracker_client.get_testrun_stats()
     print(stats)
 
 if __name__ == '__main__':
@@ -156,4 +159,5 @@ if __name__ == '__main__':
         )
     except Exception as e:
         print(f"An error occurred: {e}")
+        raise e
         exit(1)
