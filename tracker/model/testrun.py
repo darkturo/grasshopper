@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from datetime import datetime
 from flask import Flask
+from uuid import uuid4
 from werkzeug.security import check_password_hash, generate_password_hash
 
 from .db import get_db
@@ -27,8 +28,8 @@ class TestRun:
         try:
             db = get_db()
             db.execute(
-                "INSERT INTO testrun (user_id, name, description, threshold) VALUES (?, ?, ?, ?)",
-                (user_id, name, description, threshold),
+                "INSERT INTO testrun (id, user_id, name, description, threshold) VALUES (?, ?, ?, ?, ?)",
+                (uuid4().bytes, user_id, name, description, threshold),
             )
             db.commit()
         except IntegrityError as e:
@@ -68,8 +69,8 @@ class TestRun:
     def record_cpu_usage(self, cpu_usage):
         db = get_db()
         db.execute(
-            "INSERT INTO cpu_usage (testrun_id, cpu_usage) VALUES (?, ?)",
-            (self.id, cpu_usage),
+            "INSERT INTO cpu_usage (id, testrun_id, cpu_usage) VALUES (?, ?, ?)",
+            (uuid4().bytes, self.id, cpu_usage),
         )
         db.commit()
 
