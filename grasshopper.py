@@ -88,13 +88,23 @@ class Runner:
         else:
             print("No testrun id set, can't report usage")
 
+    def run_command(self):
+        signal(SIGINT, self.terminate_runner)
+        signal(SIGTERM, self.terminate_runner)
+        if self.command:
+            os.system(" ".join(self.command))
+
     async def run(self, testrun_id):
         self.testrun_id = testrun_id
         try:
-            self.reporter = asyncio.create_task(self.report_cpu_usage)
-            self.reporter.add_done_callback(self.exit_reporter)
+            self.reporter = asyncio.create_task(self.report_cpu_usage())
+            self.reporter.add_done_callback(self.exit_reporter())
+            print("START REPORTER")
+
             self.runner = asyncio.to_thread(self.run_command)
-            self.runner.add_done_callback(self.exit_runner)
+            self.runner.add_done_callback(self.exit_runner())
+            print("START COMMAND")
+
             await asyncio.wait([self.runner, self.reporter])
         except asyncio.CancelledError:
             print("User close tasks")
@@ -107,23 +117,17 @@ class Runner:
     def exit_reporter(self, future):
         print("Reporter has finished: ", future.result(1))
 
-    def run_command(self):
-        signal(SIGINT, self.terminate_runner)
-        signal(SIGTERM, self.terminate_runner)
-        if self.command:
-            os.system(" ".join(self.command))
 
-
-async def grasshopper(tracker_client, runner, name, description, threshold):
-    testrun = tracker_client.create_testrun(name, description, threshold)
+async def grasshopper(tracker, runner, name, description, threshold):
+    testrun = tracker.create_testrun(name, description, threshold)
 
     print(f"Testrun starts with id: {testrun.id} at {testrun.start_time}")
 
     await runner.run(testrun.id)
 
-    tracker_client.stop_testrun()
+    tracker.stop_testrun()
 
-    stats = tracker_client.get_testrun_stats()
+    stats = tracker.get_testrun_stats()
     print(stats)
 
 
