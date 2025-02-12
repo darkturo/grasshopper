@@ -81,7 +81,8 @@ class Runner:
 
     async def report_cpu_usage(self):
         if self.testrun_id:
-            while (True):
+            while True:
+                print("REPORTING USAGE")
                 usage = psutil.cpu_percent()
                 print(f"CPU usage: {usage}")
                 await asyncio.sleep(self.poll_interval)
@@ -98,24 +99,15 @@ class Runner:
         self.testrun_id = testrun_id
         try:
             self.reporter = asyncio.create_task(self.report_cpu_usage())
-            self.reporter.add_done_callback(self.exit_reporter())
             print("START REPORTER")
 
-            self.runner = asyncio.to_thread(self.run_command)
-            self.runner.add_done_callback(self.exit_runner())
+            self.runner = asyncio.create_task(asyncio.to_thread(self.run_command))
             print("START COMMAND")
 
             await asyncio.wait([self.runner, self.reporter])
+            print("NOT YET... WHAT HAPPENED?")
         except asyncio.CancelledError:
             print("User close tasks")
-        except Exception as e:
-            print(f"An error occurred: {e}")
-
-    def exit_runner(self, future):
-        print("Runner has finished: ", future.result(1))
-
-    def exit_reporter(self, future):
-        print("Reporter has finished: ", future.result(1))
 
 
 async def grasshopper(tracker, runner, name, description, threshold):
