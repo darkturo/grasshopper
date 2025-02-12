@@ -1,16 +1,18 @@
 #!/usr/bin/python3
 import argparse
 import asyncio
-import json
 import os
 from collections import namedtuple
 import psutil
 import requests
-from signal import sigwait, SIGINT, SIGTERM, signal
+from signal import SIGINT, SIGTERM, signal
 import warnings
+
+BASE_PATH = '/v1/api/testrun'
 
 
 class TrackerClient:
+
     def __init__(self, jwt, server_url):
         self.jwt = jwt
         self.tracker_url = f"{server_url}"
@@ -20,12 +22,12 @@ class TrackerClient:
             raise Exception('No JWT token provided')
 
         try:
-            requests.head(f'{self.tracker_url}/v1/api/auth', timeout=1)
+            requests.head(f'{self.tracker_url}{BASE_PATH}', timeout=1)
         except requests.exceptions.ConnectionError:
-            raise Exception(f'Cannot reach the tracker service at {self.tracker_url}')
+            raise Exception(f'Tracker unreachable {self.tracker_url}')
 
     def create_testrun(self, name, description, threshold):
-        r = requests.post(f'{self.tracker_url}/v1/api/testrun', json={
+        r = requests.post(f'{self.tracker_url}{BASE_PATH}', json={
             'name': name,
             'description': description,
             'threshold': threshold
@@ -35,24 +37,29 @@ class TrackerClient:
             raise Exception(f'Error creating testrun: {r.text}')
 
         self.test_run_id = r.json().get('id')
-        return namedtuple('TestRun', ['id', 'start_time'])(self.test_run_id, r.json().get('start_time'))
-
+        return namedtuple('TestRun',
+                          ['id', 'start_time'])(self.test_run_id,
+                                                r.json().get('start_time'))
 
     def record_usage(self, usage):
-        r = requests.post(f'{self.tracker_url}/v1/api/testrun/{self.test_run_id}/usage', json={
-            'usage': usage
-        }, headers={'Authorization': f'Bearer {self.jwt}'})
+        r = requests.post(
+            f'{self.tracker_url}{BASE_PATH}/{self.test_run_id}/usage',
+            json={'usage': usage},
+            headers={'Authorization': f'Bearer {self.jwt}'})
 
         if r.status_code != 201:
             warnings.warn(f'Could not report usage: {r.text}')
 
     def stop_testrun(self):
-        r = requests.post(f'{self.tracker_url}/v1/api/testrun/{self.test_run_id}/stop', headers={'Authorization': f'Bearer {self.jwt}'})
+        stop_url = f'{self.tracker_url}{BASE_PATH}/{self.test_run_id}/stop'
+        r = requests.post(stop_url,
+                          headers={'Authorization': f'Bearer {self.jwt}'})
         if r.status_code != 200:
             warnings.warn(f'Could not stop testrun: {r.text}')
 
     def get_testrun_stats(self):
-        r = requests.get(f'{self.tracker_url}/v1/api/testrun/{self.test_run_id}', headers={'Authorization': f'Bearer {self.jwt}'})
+        r = requests.get(f'{self.tracker_url}{BASE_PATH}/{self.test_run_id}',
+                         headers={'Authorization': f'Bearer {self.jwt}'})
         if r.status_code != 200:
             warnings.warn(f'Could not get testrun stats: {r.text}')
         print(f"GOT STATS: {r.text}")
@@ -106,6 +113,7 @@ class Runner:
         if self.command:
             os.system(" ".join(self.command))
 
+
 async def grasshopper(tracker_client, runner, name, description, threshold):
     testrun = tracker_client.create_testrun(name, description, threshold)
 
@@ -118,16 +126,29 @@ async def grasshopper(tracker_client, runner, name, description, threshold):
     stats = tracker_client.get_testrun_stats()
     print(stats)
 
+
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description='Grasshopper tracks the time of your tests')
-    parser.add_argument('--jwt', type=str, help='The JWT token to authenticate with the API')
+    parser = argparse.ArgumentParser(description='''
+                        Grasshopper tracks the cpu usage of your tests
+                        suites, programs, or any other command you want
+                        to run and measure its cpu usage.
+    ''')
+    parser.add_argument('--jwt', type=str,
+                        help='The JWT token to authenticate with the API')
     parser.add_argument('--name', type=str, help='The name of the testrun.')
-    parser.add_argument('--description', type=str, help='The description of the testrun.')
-    parser.add_argument('--threshold', type=float, default=1, help='The threshold for the testrun.')
-    parser.add_argument('--poll-interval', type=float, default=0.5, help='The interval in seconds to poll the CPU usage.')
-    parser.add_argument('--server', type=str, default='http://127.0.0.1:5000', help='The URL of the server to connect to.')
-    parser.add_argument('--no-command', action='store_true', help='Run grasshopper to just listen for the cpu usage until is terminated.')
-    parser.add_argument('command', nargs='*', help='The command to run after the testrun is finished.')
+    parser.add_argument('--description', type=str,
+                        help='The description of the testrun.')
+    parser.add_argument('--threshold', type=float, default=1,
+                        help='The threshold for the testrun.')
+    parser.add_argument('--poll-interval', type=float, default=0.5,
+                        help='The interval in seconds to poll the CPU usage.')
+    parser.add_argument('--server', type=str, default='http://127.0.0.1:5000',
+                        help='The URL of the server to connect to.')
+    parser.add_argument('--no-command', action='store_true',
+                        help='Run grasshopper to just listen for the cpu '
+                             'usage until is terminated.')
+    parser.add_argument('command', nargs='*',
+                        help='The command to execute and measure.')
 
     args = parser.parse_args()
 
@@ -135,7 +156,8 @@ if __name__ == '__main__':
         print("The --no-command flag cannot be used with a command")
         exit(1)
     elif not args.no_command and not args.command:
-        print("Specify a command to run or use the --no-command flag to just listen for the CPU usage.")
+        print("Specify a command to run or use the --no-command flag to "
+              "just listen for the CPU usage.")
         exit(1)
     if args.no_command:
         args.command = 'read -p waiting...'
@@ -155,7 +177,11 @@ if __name__ == '__main__':
         runner = Runner(tracker_client, args.command)
 
         asyncio.get_event_loop().run_until_complete(
-            grasshopper(tracker_client, runner, args.name, args.description, args.threshold)
+            grasshopper(tracker_client,
+                        runner,
+                        args.name,
+                        args.description,
+                        args.threshold)
         )
     except Exception as e:
         print(f"An error occurred: {e}")
