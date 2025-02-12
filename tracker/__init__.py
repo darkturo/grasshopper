@@ -2,15 +2,17 @@ import os
 
 from flask import Flask
 from flask_jwt_extended import JWTManager
+from flask import current_app, g
 
 
 def create_app(test_config=None):
     app = Flask(__name__, instance_relative_config=True)
     app.config.from_mapping(
+        SERVER_NAME='localhost:5000',
         SECRET_KEY='dev',
         DATABASE=os.path.join(app.instance_path, 'tracker.sqlite'),
         JWT_SECRET_KEY='super-secret',
-        JWT_TOKEN_LOCATION='headers'
+        JWT_TOKEN_LOCATION='headers',
     )
 
     if test_config is None:
@@ -27,7 +29,7 @@ def create_app(test_config=None):
     from .model import db
     db.init_app(app)
 
-    jwt = JWTManager(app)
+    JWTManager(app)
 
     # Register blueprints
     from . import auth, dashboard, index, api
@@ -35,6 +37,8 @@ def create_app(test_config=None):
     app.register_blueprint(dashboard.bp)
     app.register_blueprint(index.bp)
     app.register_blueprint(api.bp)
+
+    app.before_request(auth.load_logged_in_user)
 
     #app.add_url_rule('/', endpoint='index')
     return app

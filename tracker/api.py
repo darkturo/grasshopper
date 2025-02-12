@@ -2,6 +2,7 @@ from flask import Blueprint, current_app, jsonify, request
 from flask_jwt_extended import create_access_token, get_jwt_identity, jwt_required, JWTManager
 from tracker.model.user import User
 from tracker.model.testrun import TestRun
+from flask import current_app, g
 
 bp = Blueprint('v1', __name__, url_prefix='/v1/api')
 

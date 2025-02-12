@@ -3,10 +3,31 @@ import functools
 from flask import (
     Blueprint, flash, g, redirect, render_template, request, session, url_for
 )
+from flask_jwt_extended import create_access_token
+from flask import current_app, g
 
 from tracker.model.user import User, UserAlreadyExistsError
 
 bp = Blueprint('auth', __name__, url_prefix='/auth')
+
+
+def load_logged_in_user():
+    user_id = session.get('user_id')
+    if user_id is None:
+        g.user = None
+    else:
+        g.user = User.find_by_id(user_id)
+
+
+def login_required(view):
+    @functools.wraps(view)
+    def wrapped_view(**kwargs):
+        if g.user is None:
+            return redirect(url_for('auth.login'))
+
+        return view(**kwargs)
+
+    return wrapped_view
 
 
 @bp.route('/register', methods=('GET', 'POST'))
@@ -53,6 +74,8 @@ def login():
         if error is None:
             session.clear()
             session['user_id'] = user.id
+            g.user = user
+
             return redirect(url_for('dashboard.index'))
 
         flash(error)
@@ -60,28 +83,27 @@ def login():
     return render_template('auth/login.html')
 
 
-@bp.before_app_request
-def load_logged_in_user():
-    user_id = session.get('user_id')
-
-    if user_id is None:
-        g.user = None
-    else:
-        g.user = User.find_by_id(user_id)
-
-
+@login_required
 @bp.route('/logout')
 def logout():
     session.clear()
+    g.user = None
     return redirect(url_for('index'))
 
 
-def login_required(view):
-    @functools.wraps(view)
-    def wrapped_view(**kwargs):
-        if g.user is None:
-            return redirect(url_for('auth.login'))
+@login_required
+@bp.route('/jwt')
+def jwt():
+    user_id = session.get('user_id')
+    if user_id is None:
+        flash('You need to be logged in to access this page...', 'error')
+        return redirect(url_for('auth.login'))
 
-        return view(**kwargs)
+    user = User.find_by_id(user_id)
+    if user is None:
+        return redirect(url_for('auth.login'))
 
-    return wrapped_view
+    jwt_token = create_access_token(identity=user.username)
+    g.jwt_token = jwt_token
+    return render_template('auth/jwt.html')
+

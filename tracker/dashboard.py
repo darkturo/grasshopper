@@ -1,6 +1,7 @@
 from flask import (
     Blueprint, flash, g, redirect, render_template, request, url_for
 )
+from flask import current_app, g
 
 from tracker.auth import login_required
 from tracker.model.db import get_db

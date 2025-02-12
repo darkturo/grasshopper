@@ -1,13 +1,15 @@
 from dataclasses import dataclass
-from flask import Flask
+from flask import current_app, g
 from werkzeug.security import check_password_hash, generate_password_hash
-
-from .db import get_db
+from uuid import uuid4
 from sqlite3 import IntegrityError
+
+from tracker.model.db import get_db
 
 
 class UserAlreadyExistsError(Exception):
     pass
+
 
 @dataclass
 class User:
@@ -17,9 +19,22 @@ class User:
     email: str
 
     @staticmethod
+    def find_by_id(user_id):
+        """ Retrieve a user by id """
+        db = get_db()
+
+        user = db.execute(
+            'SELECT * FROM user WHERE id = ?', (user_id,)
+        ).fetchone()
+        if user is None:
+            return None
+        return User(id=user['id'], username=user['username'], password=user['password'], email=user['email'])
+
+    @staticmethod
     def find_by_username(username):
         """ Retrieve a user by username """
         db = get_db()
+
         user = db.execute(
             'SELECT * FROM user WHERE username = ?', (username,)
         ).fetchone()
@@ -30,11 +45,12 @@ class User:
     @staticmethod
     def create(username, email, password):
         """ Create a new user, will raise an error if the user already exists """
+        db = get_db()
+
         try:
-            db = get_db()
             db.execute(
-                "INSERT INTO user (username, email, password) VALUES (?, ?, ?)",
-                (username, email, generate_password_hash(password)),
+                "INSERT INTO user (id, username, email, password) VALUES (?, ?, ?, ?)",
+                (uuid4().bytes, username, email, generate_password_hash(password)),
             )
             db.commit()
         except IntegrityError as e:

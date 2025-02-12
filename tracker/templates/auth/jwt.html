@@ -1,0 +1,12 @@
+{% extends 'base.html' %}
+
+{% block header %}
+<h1>AUTH</h1>
+{% endblock %}
+
+{% block content %}
+Here's your JWT token: <div class='jwt_token'>{{ g.jwt_token }}</div>
+{% endblock %}
+
+{% block footer %}
+{% endblock %}

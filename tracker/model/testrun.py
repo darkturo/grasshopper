@@ -20,6 +20,7 @@ class TestRun:
     start_time: str = None
     end_time: str = None
 
+
     @staticmethod
     def create(user_id, name, description, threshold):
         """ Create a new testrun, will raise an error if the testrun already exists """
