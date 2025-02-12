@@ -58,3 +58,23 @@ Response:
     "duration": 0, // seconds
 }
 
+## How to run
+Startup the service with flask from the root of the repo:
+
+```bash
+flask --app tracker run
+```
+
+
+Then on another console, run the grasshopper script:
+
+```bash
+python3 grasshopper.py --jwt $TOKEN --threshold 2 --no-command
+```
+
+This will run grasshopper without wrapping any command reporting to the tracker service every .5 seconds (configurable) the cpu usage of the system.
+It is possible to run the script with a command to wrap, for example:
+
+```bash
+python3 grasshopper.py --jwt $TOKEN --threshold 2 transcode-video-tool -i input.avi -o ouput.avi -fps 30 -q 5 -s 1024x768
+```
