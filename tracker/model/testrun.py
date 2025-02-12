@@ -27,13 +27,16 @@ class TestRun:
         """ Create a new testrun, will raise an error if the testrun already exists """
         try:
             db = get_db()
+            id = uuid4().bytes
             db.execute(
-                "INSERT INTO testrun (id, user_id, name, description, threshold) VALUES (?, ?, ?, ?, ?)",
-                (uuid4().bytes, user_id, name, description, threshold),
+                "INSERT INTO test_run (id, user_id, name, description, threshold) VALUES (?, ?, ?, ?, ?)",
+                (id, user_id, name, description, threshold),
             )
             db.commit()
+            res = db.execute("SELECT id, start_time FROM test_run WHERE id = ?", (id,)).fetchone()
         except IntegrityError as e:
             raise TestRunAlreadyExistsError(e)
+        return {'id': res['id'], 'start_time': res['start_time']}
 
     @property
     def is_active(self):
