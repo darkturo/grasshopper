@@ -2,6 +2,7 @@ from flask import Blueprint, current_app, jsonify, request
 from flask_jwt_extended import create_access_token, get_jwt_identity, jwt_required, JWTManager
 from tracker.model.user import User
 from tracker.model.testrun import TestRun
+from uuid import UUID
 from flask import current_app, g
 
 bp = Blueprint('v1', __name__, url_prefix='/v1/api')
@@ -29,11 +30,12 @@ def testrun():
     current_user = get_jwt_identity()
 
     user = User.find_by_username(current_user)
-    test_run = TestRun.create(user.id,
-                              request.json.get("name"),
-                              request.json.get("description"),
-                              request.json.get("threshold"))
-    return jsonify(id=test_run.id, start_time=test_run.start_time), 201
+    res = TestRun.create(user.id,
+                         request.json.get("name"),
+                         request.json.get("description"),
+                         request.json.get("threshold"))
+
+    return jsonify(id=UUID(bytes=res['id']), start_time=res['start_time']), 201
 
 
 @bp.route("/testrun/<testrun_id>/usage", methods=["POST"])
