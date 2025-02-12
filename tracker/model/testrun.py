@@ -42,7 +42,7 @@ class TestRun:
                 SELECT id, start_time FROM
                     test_run
                 WHERE id = ?
-                ''', (id)).fetchone()
+                ''', (id,)).fetchone()
         except IntegrityError as e:
             raise TestRunAlreadyExistsError(e)
         return {'id': res['id'], 'start_time': res['start_time']}
@@ -98,7 +98,7 @@ class TestRun:
                 cpu_usage
             WHERE testrun_id = ?
             GROUP BY test_run_id
-            ''', (self.id)).fetchone()['max_usage']
+            ''', (self.id,)).fetchone()['max_usage']
         return cpu_usage > self.threshold
 
     def fetch_current_cpu_usage(self):
@@ -110,7 +110,7 @@ class TestRun:
                     cpu_usage
                 WHERE testrun_id = ?
                 ORDER BY time DESC LIMIT 1
-                ''', (self.id)).fetchall():
+                ''', (self.id,)).fetchall():
             usage_time_series.append(CPUUsage(usage=entry['cpu_usage'],
                                               timestamp=entry['time'],
                                               testrun_id=self.id))
