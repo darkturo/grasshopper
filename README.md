@@ -151,5 +151,5 @@ The script is also part of the docker image and can be run as a docker
 container as well. To do so just type:
 
 ```bash
-docker run -rm grasshopper grasshopper.py --jwt $TOKEN ...
+docker run -rm grasshopper grasshopper --jwt $TOKEN ...
 ```
