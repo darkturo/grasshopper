@@ -1,4 +1,4 @@
-# tracker
+# Grasshopper 🦗
 This is a coding exercise in Python3 featuring a simple service to track cpu usage 
 and execution times of an application using a script called grasshopper. 
 The grasshopper is a simple python script that wraps any command and reports on a
