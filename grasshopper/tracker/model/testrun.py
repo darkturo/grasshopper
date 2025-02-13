@@ -12,8 +12,8 @@ class TestRunAlreadyExistsError(Exception):
 
 @dataclass
 class TestRun:
-    id: str
-    user_id: str
+    id: int
+    user_id: int
     name: str
     description: str
     threshold: float = 0.0
@@ -31,15 +31,13 @@ class TestRun:
         ).fetchone()
         if testrun is None:
             return None
-        return TestRun(
-            id=testrun['id'],
-            user_id=testrun['user_id'],
-            name=testrun['name'],
-            description=testrun['description'],
-            threshold=testrun['threshold'],
-            start_time=testrun['start_time'],
-            end_time=testrun['end_time'],
-        )
+        return TestRun(id=testrun['id'],
+                       user_id=testrun['user_id'],
+                       name=testrun['name'],
+                       description=testrun['description'],
+                       threshold=testrun['threshold'],
+                       start_time=testrun['start_time'],
+                       end_time=testrun['end_time'])
 
     @staticmethod
     def create(user_id, name, description, threshold):
@@ -49,24 +47,20 @@ class TestRun:
         """
         try:
             db = get_db()
-            id = uuid4().bytes
             db.execute(
                 '''
                 INSERT INTO
-                    test_run (id, user_id, name, description, threshold)
-                VALUES (?, ?, ?, ?, ?)
+                    test_run (user_id, name, description, threshold)
+                VALUES (?, ?, ?, ?);
                 ''',
-                (id, user_id, name, description, threshold),
-            )
+                (user_id, name, description, threshold),
+            ).fetchone()
+            id = db.execute('SELECT last_insert_rowid()').fetchone()[0]
+            start_time = db.execute('SELECT start_time FROM test_run WHERE id = ?', (id,)).fetchone()[0]
             db.commit()
-            res = db.execute('''
-                SELECT id, start_time FROM
-                    test_run
-                WHERE id = ?
-                ''', (id,)).fetchone()
         except IntegrityError as e:
             raise TestRunAlreadyExistsError(e)
-        return {'id': res['id'], 'start_time': res['start_time']}
+        return {'id': id, 'start_time': start_time}
 
     @property
     def is_active(self):
@@ -74,13 +68,13 @@ class TestRun:
 
     @property
     def started_at(self):
-        return datetime.fromisoformat(self.start_time)
+        return self.start_time
 
     @property
     def ended_at(self):
         if self.end_time is None:
             return None
-        return datetime.fromisoformat(self.end_time)
+        return self.end_time
 
     @property
     def duration(self):
@@ -88,13 +82,13 @@ class TestRun:
             ended_at = datetime.now()
         else:
             ended_at = self.ended_at
-        return (ended_at - self.started_at).total_seconds()
+        return (ended_at - self.started_at).seconds
 
     def finish(self):
         db = get_db()
         self.end_time = datetime.now().isoformat()
         db.execute(
-            "UPDATE testrun SET end_time = ? WHERE id = ?",
+            "UPDATE test_run SET end_time = ? WHERE id = ?",
             (self.end_time, self.id),
         )
         db.commit()
@@ -104,10 +98,10 @@ class TestRun:
         db.execute(
             '''
             INSERT INTO
-                cpu_usage (id, testrun_id, cpu_usage)
-            VALUES (?, ?, ?)
+                cpu_usage (test_run_id, usage)
+            VALUES (?, ?)
             ''',
-            (uuid4().bytes, self.id, cpu_usage),
+            (self.id, cpu_usage),
         )
         db.commit()
 
@@ -117,7 +111,7 @@ class TestRun:
             '''
             SELECT MAX(usage) as max_usage FROM
                 cpu_usage
-            WHERE testrun_id = ?
+            WHERE test_run_id = ?
             GROUP BY test_run_id
             ''', (self.id,)).fetchone()['max_usage']
         return cpu_usage > self.threshold
@@ -125,20 +119,25 @@ class TestRun:
     def fetch_current_cpu_usage(self):
         db = get_db()
         usage_time_series = []
+
         for entry in db.execute(
                 '''
-                SELECT cpu_usage, time FROM
+                SELECT * FROM
                     cpu_usage
-                WHERE testrun_id = ?
-                ORDER BY time DESC LIMIT 1
+                WHERE test_run_id = ?
+                ORDER BY time DESC
                 ''', (self.id,)).fetchall():
-            usage_time_series.append(CPUUsage(usage=entry['cpu_usage'],
-                                              timestamp=entry['time'],
-                                              testrun_id=self.id))
+            usage_time_series.append(CPUUsage(id=entry['id'],
+                                              testrun_id=entry['test_run_id'],
+                                              usage=entry['usage'],
+                                              timestamp=entry['time']))
+        return usage_time_series
 
     def get_test_execution_stats(self):
         time_series = self.fetch_current_cpu_usage()
         total_time = 0
+        if not time_series:
+            raise ValueError("No CPU usage data found")
 
         for periods in zip(time_series, time_series[1:]):
             period_duration = (periods[1].timestamp -
@@ -154,6 +153,7 @@ class TestRun:
 
 @dataclass
 class CPUUsage:
-    testrun_id: str
+    id: int
+    testrun_id: int
     timestamp: str
     usage: float

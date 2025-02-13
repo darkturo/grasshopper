@@ -12,8 +12,8 @@ class UserAlreadyExistsError(Exception):
 
 @dataclass
 class User:
-    id: str
-    username: str
+    id: int
+    username: int
     password: str
     email: str
 
@@ -58,11 +58,10 @@ class User:
         try:
             db.execute('''
                 INSERT INTO
-                    user (id, username, email, password)
-                VALUES (?, ?, ?, ?)
+                    user (username, email, password)
+                VALUES (?, ?, ?)
                 ''',
-                       (uuid4().bytes,
-                        username,
+                       (username,
                         email,
                         generate_password_hash(password)))
             db.commit()
