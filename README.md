@@ -1,3 +1,6 @@
+![Build](https://github.com/darkturo/grasshopper/actions/workflows/grasshopper-tracker.yml/badge.svg)
+![Artifacts](https://github.com/darkturo/grasshopper/actions/workflows/grasshopper-tracker-artifacts.yml/badge.svg)
+
 # Grasshopper 🦗
 This is a coding exercise in Python3 featuring a simple service to track cpu usage 
 and execution times of an application using a script called grasshopper. 
