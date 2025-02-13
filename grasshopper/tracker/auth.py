@@ -7,7 +7,7 @@ from flask import (
 from flask_jwt_extended import create_access_token
 
 
-from tracker.model.user import User, UserAlreadyExistsError
+from grasshopper.tracker.model.user import User, UserAlreadyExistsError
 
 bp = Blueprint('auth', __name__, url_prefix='/auth')
 

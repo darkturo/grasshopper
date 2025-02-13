@@ -1,7 +1,7 @@
 from flask import (
     Blueprint, render_template
 )
-from tracker.auth import login_required
+from grasshopper.tracker.auth import login_required
 
 bp = Blueprint('dashboard', __name__)
 

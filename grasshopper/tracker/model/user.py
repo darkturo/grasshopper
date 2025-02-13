@@ -3,7 +3,7 @@ from werkzeug.security import check_password_hash, generate_password_hash
 from uuid import uuid4
 from sqlite3 import IntegrityError
 
-from tracker.model.db import get_db
+from grasshopper.tracker.model.db import get_db
 
 
 class UserAlreadyExistsError(Exception):

@@ -9,7 +9,7 @@ def create_app(test_config=None):
     app.config.from_mapping(
         SERVER_NAME='localhost:5000',
         SECRET_KEY='dev',
-        DATABASE=os.path.join(app.instance_path, 'tracker.sqlite'),
+        DATABASE=os.path.join(app.instance_path, 'grasshopper-tracker-database.sqlite'),
         JWT_SECRET_KEY='super-secret',
         JWT_TOKEN_LOCATION='headers',
     )

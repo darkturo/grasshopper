@@ -9,7 +9,7 @@ RUN poetry install
 
 RUN poetry build
 
-RUN pip install /app/dist/tracker-*.whl --break-system-packages
+RUN pip install /app/dist/grasshopper-*.whl --break-system-packages
 
 EXPOSE 5000
 

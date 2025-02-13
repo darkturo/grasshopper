@@ -1,10 +1,17 @@
 # tracker
-This is a coding exercise in Python3 featuring a simple service to track test times 
-of an application called grasshopper. The grasshopper is a simple python script that 
-reports on a time interval the cpu usage of the system. 
+This is a coding exercise in Python3 featuring a simple service to track cpu usage 
+and execution times of an application using a script called grasshopper. 
+The grasshopper is a simple python script that wraps any command and reports on a
+given (default to 0.5 seconds) interval the cpu usage of the system it is running 
+on to a grasshoper-tracker service. 
 
-The API for the tracker service is as follows:
+The grasshopper.tracker service offers a simple UI to register as a user and obtain 
+a TOKEN (JWT) which will be used by the grasshopper script to authenticate with the
+service and log any runs with the grasshopper script.
 
+The API for the grasshopper.tracker service is: 
+
+```
 POST /api/v1/auth
 Request:
 {
@@ -57,32 +64,85 @@ Response:
     "end_time": "2021-01-01T00:00:00",
     "duration": 0, // seconds
 }
-
-## How to run
-Startup the service with flask from the root of the repo:
-
-```bash
-flask --app tracker tracker init-db
-flask --app tracker run
 ```
 
-or the follwing command to run with the docker image:
+## Running the service
+To start the project, you will need to create a database first.
+
+You can do this by running the following command:
 
 ```bash
-docker run -w /PATH_TO_SQLITE/:/app/instance --rm grasshopper-tracker flask --app tracker init-db
-docker run -p 5000:5000 -w /PATH_TO_SQLITE/:/app/instance --rm grasshopper-tracker flask --app tracker run
+flask --app grasshopper.tracker init-db
+```
+
+To run the service you can use flask as follows:
+```bash
+flask --app grasshopper.tracker run
+```
+
+or the following you want to enable debug mode:
+
+```bash
+flask --app grasshopper.tracker run --debug
 ```
 
 
-Then on another console, run the grasshopper script:
+### Docker
+These are the steps if you plan to execute the service with docker instead.
+Download the image from the github repo (or build it yourself with the
+Dockerfile) and then run the following command to create the DB:
 
 ```bash
-python3 grasshopper.py --jwt $TOKEN --threshold 2 --no-command
+docker run -w /PATH_TO_SQLITE/:/app/instance --rm grasshopper flask --app grasshopper.tracker init-db
 ```
 
-This will run grasshopper without wrapping any command reporting to the tracker service every .5 seconds (configurable) the cpu usage of the system.
-It is possible to run the script with a command to wrap, for example:
+Then to run the service you just need to:
 
 ```bash
-python3 grasshopper.py --jwt $TOKEN --threshold 2 transcode-video-tool -i input.avi -o ouput.avi -fps 30 -q 5 -s 1024x768
+docker run -p 5000:5000 -w /PATH_TO_SQLITE/:/app/instance --rm grasshopper.tracker 
+```
+
+Observe that `PATH_TO_SQLITE` is the path to the sqlite file that will be created
+by the service to store the data.
+
+
+## Running the grasshopper script
+The script can be run from any machine or host that has access to the service.
+
+If you're runnning the service localhost you can just run the following command:
+
+```bash
+python3 grasshopper.py --jwt <JWT_TOKEN> <command>
+```
+
+Where command is any command you want to wrap with the grasshopper script, and
+the JWT_TOKEN is the token you obtained from the service.
+
+If the server is elsewhere, you can also specify the host and port with the
+`server` option:
+
+```bash
+python3 grasshopper.py --jwt $TOKEN --server http://myserver.somewhere.in.theinternet:5000 <command>
+```
+
+### Running grasshopper script to monitor cpu usage
+You can also run the grasshopper script without a command to just monitor the cpu 
+usage of the system. To do that you, use this:
+
+```bash
+python3 grasshopper.py --jwt $TOKEN --no-command
+```
+ 
+### Report intervals
+You can adjust the interval of the reports by using the `--interval` option. Controlling
+this will give you the chance to adjust the granularity of the observations, getting a more 
+precise reports. 
+
+
+### Running the grasshopper script with docker
+The script is also part of the docker image and can be run as a docker 
+container as well. To do so just type:
+
+```bash
+docker run -rm grasshopper grasshopper.py --jwt $TOKEN ...
 ```

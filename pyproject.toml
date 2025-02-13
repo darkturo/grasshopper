@@ -1,7 +1,7 @@
 [tool.poetry]
-name = "tracker"
+name = "grasshopper"
 version = "0.1.0"
-description = "CPU usage tracker for testing apps"
+description = "CPU usage tracker for testing apps concurrently"
 authors = ["Arturo Escudero <darkturo@gmail.com>"]
 license = "MIT"
 readme = "README.md"

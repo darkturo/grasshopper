@@ -2,8 +2,8 @@ from flask import Blueprint, jsonify, request
 from flask_jwt_extended import (
     create_access_token, get_jwt_identity, jwt_required
 )
-from tracker.model.user import User
-from tracker.model.testrun import TestRun
+from grasshopper.tracker.model.user import User
+from grasshopper.tracker.model.testrun import TestRun
 from uuid import UUID
 
 bp = Blueprint('v1', __name__, url_prefix='/v1/api')
@@ -67,7 +67,9 @@ def testrun_stop(testrun_id):
     current_user = get_jwt_identity()
 
     user = User.find_by_username(current_user)
+    print(f"BACKEND: {testrun_id}")
     test_run = TestRun.find_by_id(testrun_id)
+    print(f"BACKEND: {test_run}")
     if not test_run:
         return jsonify({"msg": "No testrun found"}), 404
 
