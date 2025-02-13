@@ -1,9 +1,9 @@
 name:  Grasshopper Artifacts
 
 on:
-  tag:
-    - v*
-
+  push:
+    tags:
+      - v*
 
 jobs:
   build:
