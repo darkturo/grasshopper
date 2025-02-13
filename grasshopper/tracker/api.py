@@ -36,7 +36,7 @@ def testrun():
                          request.json.get("description"),
                          request.json.get("threshold"))
 
-    return jsonify(id=UUID(bytes=res['id']), start_time=res['start_time']), 201
+    return jsonify(id=res['id'], start_time=res['start_time']), 201
 
 
 @bp.route("/testrun/<testrun_id>/usage", methods=["POST"])
@@ -67,9 +67,7 @@ def testrun_stop(testrun_id):
     current_user = get_jwt_identity()
 
     user = User.find_by_username(current_user)
-    print(f"BACKEND: {testrun_id}")
     test_run = TestRun.find_by_id(testrun_id)
-    print(f"BACKEND: {test_run}")
     if not test_run:
         return jsonify({"msg": "No testrun found"}), 404
 
@@ -98,4 +96,4 @@ def testrun_get(testrun_id):
                    time_above_threshold=stats["time_above_threshold"],
                    start_time=test_run.start_time,
                    end_time=test_run.end_time,
-                   duration=stats["duration"]), 200
+                   duration=stats["total_time"]), 200
