@@ -62,7 +62,15 @@ Response:
 Startup the service with flask from the root of the repo:
 
 ```bash
+flask --app tracker tracker init-db
 flask --app tracker run
+```
+
+or the follwing command to run with the docker image:
+
+```bash
+docker run -w /PATH_TO_SQLITE/:/app/instance --rm grasshopper-tracker flask --app tracker init-db
+docker run -p 5000:5000 -w /PATH_TO_SQLITE/:/app/instance --rm grasshopper-tracker flask --app tracker run
 ```
 
 
