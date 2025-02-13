@@ -42,4 +42,4 @@ jobs:
       uses: docker/build-push-action@v6
       with:
         push: true
-        tags: darkturo/grasshopper-tracker:latest
+        tags: darkturo/grasshopper:latest
