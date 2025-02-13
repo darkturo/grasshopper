@@ -9,6 +9,11 @@ from .db import get_db
 class TestRunAlreadyExistsError(Exception):
     pass
 
+def calculate_duration(start_time, end_time):
+    """
+    Take two timestamps and return the duration in seconds
+    """
+    return (end_time - start_time).seconds / 1000
 
 @dataclass
 class TestRun:
@@ -82,7 +87,7 @@ class TestRun:
             ended_at = datetime.now()
         else:
             ended_at = self.ended_at
-        return (ended_at - self.started_at).seconds
+        return calculate_duration(self.started_at, self.ended_at)
 
     def finish(self):
         db = get_db()
@@ -140,8 +145,7 @@ class TestRun:
             raise ValueError("No CPU usage data found")
 
         for periods in zip(time_series, time_series[1:]):
-            period_duration = (periods[1].timestamp -
-                               periods[0].timestamp).total_seconds()
+            period_duration = calculate_duration(periods[0].timestamp, periods[1].timestamp)
             if periods[0].usage > self.threshold:
                 total_time += period_duration
         return {
