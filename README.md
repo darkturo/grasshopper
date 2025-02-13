@@ -109,20 +109,27 @@ by the service to store the data.
 ## Running the grasshopper script
 The script can be run from any machine or host that has access to the service.
 
-If you're runnning the service localhost you can just run the following command:
+If you're runnning the service localhost you can just run the following 
+command if you have build and install the grasshopper pacakge:
 
 ```bash
-python3 grasshopper.py --jwt <JWT_TOKEN> <command>
+grasshopper --jwt <JWT_TOKEN> <command>
 ```
 
-Where command is any command you want to wrap with the grasshopper script, and
-the JWT_TOKEN is the token you obtained from the service.
+or the following if you're running it directly from the source:
+
+```bash
+poetry run grasshopper --jwt <JWT_TOKEN> <command>
+```
+
+With <command> being any command you want to wrap with the grasshopper script, and
+the <JWT_TOKEN> a token you obtained from the web service or via the api.
 
 If the server is elsewhere, you can also specify the host and port with the
 `server` option:
 
 ```bash
-python3 grasshopper.py --jwt $TOKEN --server http://myserver.somewhere.in.theinternet:5000 <command>
+grasshopper --jwt $TOKEN --server http://myserver.somewhere.in.theinternet:5000 <command>
 ```
 
 ### Running grasshopper script to monitor cpu usage
@@ -130,7 +137,7 @@ You can also run the grasshopper script without a command to just monitor the cp
 usage of the system. To do that you, use this:
 
 ```bash
-python3 grasshopper.py --jwt $TOKEN --no-command
+grasshopper --jwt $TOKEN --no-command
 ```
  
 ### Report intervals
