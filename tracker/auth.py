@@ -1,4 +1,5 @@
 import functools
+from datetime import timedelta
 
 from flask import (
     Blueprint, flash, g, redirect, render_template, request, session, url_for
@@ -103,6 +104,7 @@ def jwt():
     if user is None:
         return redirect(url_for('auth.login'))
 
-    jwt_token = create_access_token(identity=user.username)
+    jwt_token = create_access_token(identity=user.username,
+                                    expires_delta=timedelta(hours=2))
     g.jwt_token = jwt_token
     return render_template('auth/jwt.html')
