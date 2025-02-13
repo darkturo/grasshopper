@@ -143,6 +143,8 @@ if __name__ == '__main__':
     parser.add_argument('--no-command', action='store_true',
                         help='Run grasshopper to just listen for the cpu '
                              'usage until is terminated.')
+    parser.add_argument('--debug', action='store_true',
+                        help='Run grasshopper in debug mode.')
     parser.add_argument('command', nargs='*',
                         help='The command to execute and measure.')
 
@@ -180,6 +182,8 @@ if __name__ == '__main__':
                         args.threshold)
         )
     except Exception as e:
-        print(f"An error occurred: {e}")
-        raise e
+        if args.debug:
+            raise e
+        else:
+            print(f"An error occurred: {e}")
         exit(1)
