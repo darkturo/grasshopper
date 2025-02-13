@@ -122,7 +122,7 @@ async def grasshopper(tracker, runner, name, description, threshold):
     print(stats)
 
 
-if __name__ == '__main__':
+def grasshopper_cli():
     parser = argparse.ArgumentParser(description='''
                         Grasshopper tracks the cpu usage of your tests
                         suites, programs, or any other command you want
@@ -184,3 +184,6 @@ if __name__ == '__main__':
         else:
             print(f"An error occurred: {e}")
         exit(1)
+
+if __name__ == '__main__':
+    grasshopper_cli()
