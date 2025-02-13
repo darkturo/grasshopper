@@ -3,14 +3,14 @@ DROP TABLE IF EXISTS test_run;
 DROP TABLE IF EXISTS cpu_usage;
 
 CREATE TABLE user (
-    id UUID PRIMARY KEY,
+    id TEXT PRIMARY KEY NOT NULL,
     username VARCHAR(255) NOT NULL UNIQUE,
     email VARCHAR(255) NOT NULL UNIQUE,
     password VARCHAR(255) NOT NULL
 );
 
 CREATE TABLE test_run (
-    id UUID PRIMARY KEY,
+    id TEXT PRIMARY KEY NOT NULL
     user_id UUID NOT NULL,
 
     name VARCHAR(255) NOT NULL,
@@ -23,7 +23,7 @@ CREATE TABLE test_run (
 );
 
 CREATE TABLE cpu_usage (
-    id UUID PRIMARY KEY,
+    id TEXT PRIMARY KEY NOT NULL,
     test_run_id UUID NOT NULL,
     time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     usage FLOAT NOT NULL,
