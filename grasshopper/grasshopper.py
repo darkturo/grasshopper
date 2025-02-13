@@ -3,9 +3,10 @@ import argparse
 import asyncio
 import os
 from collections import namedtuple
+from contextlib import contextmanager
 import psutil
 import requests
-from signal import SIGINT, SIGTERM, signal
+from signal import SIGINT, SIGTERM, signal, getsignal
 import time
 import warnings
 
@@ -48,9 +49,6 @@ class TrackerClient:
             json={'usage': usage},
             headers={'Authorization': f'Bearer {self.jwt}'})
 
-        if r.status_code != 201:
-            warnings.warn(f'Could not report usage: {r.text}')
-
     def stop_testrun(self):
         stop_url = f'{self.tracker_url}{BASE_PATH}/{self.test_run_id}/stop'
         r = requests.post(stop_url,
@@ -63,13 +61,17 @@ class TrackerClient:
                          headers={'Authorization': f'Bearer {self.jwt}'})
         if r.status_code != 200:
             warnings.warn(f'Could not get testrun stats: {r.text}')
-        print(f"GOT STATS: {r.text}")
         return r.json()
 
 
 class Runner:
-    def __init__(self, tracker_client, command=None, poll_interval=0.5):
-        self.tracker_client = tracker_client
+    def __init__(self, tracker_client,
+                 name=None, description=None, threshold=2,
+                 command=None, poll_interval=0.5):
+        self.tracker = tracker_client
+        self.name = name
+        self.description = description
+        self.threshold = threshold
         self.command = command
         self.poll_interval = poll_interval
         self.runner = None
@@ -79,12 +81,13 @@ class Runner:
     def terminate_runner(self, signum, frame):
         self.reporter.cancel()
         self.runner.cancel()
+        self.tracker.stop_testrun()
 
     async def report_cpu_usage(self):
         if self.testrun_id:
             while True:
                 usage = psutil.cpu_percent()
-                print(f"CPU usage: {usage}")
+                self.tracker.record_usage(usage)
                 await asyncio.sleep(self.poll_interval)
         else:
             raise Exception("No testrun id to report usage")
@@ -96,30 +99,35 @@ class Runner:
             while True:
                 time.sleep(30)
 
-    async def run(self, testrun_id):
-        self.testrun_id = testrun_id
+    @contextmanager
+    def terminate_runner_on_signal(self):
+        signals = [SIGINT, SIGTERM]
+        original_handlers = []
+        for sig in signals:
+            original_handlers.append(getsignal(sig))
+            signal(sig, self.terminate_runner)
 
-        signal(SIGINT, self.terminate_runner)
-        signal(SIGTERM, self.terminate_runner)
+        try:
+            yield
+        finally:
+            for sig, original_handler in zip(signals, original_handlers):
+                signal(sig, original_handler)
 
-        self.reporter = asyncio.create_task(self.report_cpu_usage())
-        self.runner = asyncio.create_task(asyncio.to_thread(self.run_command))
+    async def run(self):
+        with self.terminate_runner_on_signal():
+            self.testrun_id = self.tracker.create_testrun(self.name,
+                                                          self.description,
+                                                          self.threshold)
 
-        await asyncio.wait([self.runner, self.reporter],
-                           return_when=asyncio.ALL_COMPLETED)
+            print(f"Grasshopper: registered testrun id: {self.testrun_id}")
 
+            self.reporter = asyncio.create_task(self.report_cpu_usage())
+            self.runner = asyncio.create_task(
+                asyncio.to_thread(self.run_command)
+            )
 
-async def grasshopper(tracker, runner, name, description, threshold):
-    testrun = tracker.create_testrun(name, description, threshold)
-
-    print(f"Testrun starts with id: {testrun.id} at {testrun.start_time}")
-
-    await runner.run(testrun.id)
-
-    tracker.stop_testrun()
-
-    stats = tracker.get_testrun_stats()
-    print(stats)
+            await asyncio.wait([self.runner, self.reporter],
+                               return_when=asyncio.ALL_COMPLETED)
 
 
 def grasshopper_cli():
@@ -169,21 +177,21 @@ def grasshopper_cli():
 
     try:
         tracker_client = TrackerClient(args.jwt, args.server)
-        runner = Runner(tracker_client, args.command)
+        runner = Runner(tracker_client, args.name, args.description,
+                        args.threshold, args.command,
+                        args.poll_interval)
 
-        asyncio.get_event_loop().run_until_complete(
-            grasshopper(tracker_client,
-                        runner,
-                        args.name,
-                        args.description,
-                        args.threshold)
-        )
+        asyncio.get_event_loop().run_until_complete(runner.run())
+
+        stats = tracker_client.get_testrun_stats()
+        print(f"Testrun stats: {stats}")
     except Exception as e:
         if args.debug:
             raise e
         else:
             print(f"An error occurred: {e}")
         exit(1)
+
 
 if __name__ == '__main__':
     grasshopper_cli()
