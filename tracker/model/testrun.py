@@ -21,6 +21,27 @@ class TestRun:
     end_time: str = None
 
     @staticmethod
+    def find_by_id(testrun_id):
+        db = get_db()
+        testrun = db.execute(
+            '''
+            SELECT * FROM test_run WHERE id = ?
+            ''',
+            (testrun_id,),
+        ).fetchone()
+        if testrun is None:
+            return None
+        return TestRun(
+            id=testrun['id'],
+            user_id=testrun['user_id'],
+            name=testrun['name'],
+            description=testrun['description'],
+            threshold=testrun['threshold'],
+            start_time=testrun['start_time'],
+            end_time=testrun['end_time'],
+        )
+
+    @staticmethod
     def create(user_id, name, description, threshold):
         """
         Create a new testrun.
@@ -46,27 +67,6 @@ class TestRun:
         except IntegrityError as e:
             raise TestRunAlreadyExistsError(e)
         return {'id': res['id'], 'start_time': res['start_time']}
-
-    @staticmethod
-    def find_by_id(testrun_id):
-        db = get_db()
-        testrun = db.execute(
-            '''
-            SELECT * FROM test_run WHERE id = ?
-            ''',
-            (testrun_id,),
-        ).fetchone()
-        if testrun is None:
-            return None
-        return TestRun(
-            id=testrun['id'],
-            user_id=testrun['user_id'],
-            name=testrun['name'],
-            description=testrun['description'],
-            threshold=testrun['threshold'],
-            start_time=testrun['start_time'],
-            end_time=testrun['end_time'],
-        )
 
     @property
     def is_active(self):
