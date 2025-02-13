@@ -6,6 +6,7 @@ from collections import namedtuple
 import psutil
 import requests
 from signal import SIGINT, SIGTERM, signal
+import time
 import warnings
 
 BASE_PATH = '/v1/api/testrun'
@@ -76,38 +77,36 @@ class Runner:
         self.testrun_id = None
 
     def terminate_runner(self, signum, frame):
-        if self.reporter:
-            self.reporter.cancel()
+        self.reporter.cancel()
+        self.runner.cancel()
 
     async def report_cpu_usage(self):
         if self.testrun_id:
             while True:
-                print("REPORTING USAGE")
                 usage = psutil.cpu_percent()
                 print(f"CPU usage: {usage}")
                 await asyncio.sleep(self.poll_interval)
         else:
-            print("No testrun id set, can't report usage")
+            raise Exception("No testrun id to report usage")
 
     def run_command(self):
-        signal(SIGINT, self.terminate_runner)
-        signal(SIGTERM, self.terminate_runner)
         if self.command:
-            os.system(" ".join(self.command))
+            os.system(self.command)
+        else:
+            while True:
+                time.sleep(30)
 
     async def run(self, testrun_id):
         self.testrun_id = testrun_id
-        try:
-            self.reporter = asyncio.create_task(self.report_cpu_usage())
-            print("START REPORTER")
 
-            self.runner = asyncio.create_task(asyncio.to_thread(self.run_command))
-            print("START COMMAND")
+        signal(SIGINT, self.terminate_runner)
+        signal(SIGTERM, self.terminate_runner)
 
-            await asyncio.wait([self.runner, self.reporter])
-            print("NOT YET... WHAT HAPPENED?")
-        except asyncio.CancelledError:
-            print("User close tasks")
+        self.reporter = asyncio.create_task(self.report_cpu_usage())
+        self.runner = asyncio.create_task(asyncio.to_thread(self.run_command))
+
+        await asyncio.wait([self.runner, self.reporter],
+                           return_when=asyncio.ALL_COMPLETED)
 
 
 async def grasshopper(tracker, runner, name, description, threshold):
@@ -157,8 +156,6 @@ if __name__ == '__main__':
         print("Specify a command to run or use the --no-command flag to "
               "just listen for the CPU usage.")
         exit(1)
-    if args.no_command:
-        args.command = 'read -p waiting...'
 
     if args.name is None:
         if not args.no_command and args.command:
